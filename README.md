@@ -5,7 +5,7 @@
 </div>
 <br>
 
-![Laravel](https://img.shields.io/badge/Laravel-11-FF2D20?style=for-the-badge&logo=laravel)
+![Laravel](https://img.shields.io/badge/Laravel-12-FF2D20?style=for-the-badge&logo=laravel)
 ![PHP](https://img.shields.io/badge/PHP-8.3-777BB4?style=for-the-badge&logo=php)
 ![Filament](https://img.shields.io/badge/Filament-3-FF8A00?style=for-the-badge)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql)
@@ -26,7 +26,7 @@
 
 ## 🛠 Стек технологий
 
--   **Бэкенд**: Laravel 11, PHP 8.3
+-   **Бэкенд**: Laravel 12, PHP 8.3
 -   **Админ-панель**: Filament 3
 -   **База данных**: MySQL
 -   **Авторизация и права**: `spatie/laravel-permission` и `bezhansalleh/filament-shield`
