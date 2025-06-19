@@ -1,5 +1,10 @@
 # VSEC Marketplace
 
+<div align="center">
+    <b>Русский</b> | <a href="README.en.md">English</a>
+</div>
+<br>
+
 ![Laravel](https://img.shields.io/badge/Laravel-11-FF2D20?style=for-the-badge&logo=laravel)
 ![PHP](https://img.shields.io/badge/PHP-8.3-777BB4?style=for-the-badge&logo=php)
 ![Filament](https://img.shields.io/badge/Filament-3-FF8A00?style=for-the-badge)
