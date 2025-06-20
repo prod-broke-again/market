@@ -6,13 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class ChatMessage extends Model
 {
-    public int $id;
-    public int $chat_id;
-    public int $user_id;
-    public string $message;
-    public bool $is_read;
-    public bool $is_show;
-
     protected $casts = [
         'is_read' => 'boolean',
         'is_show' => 'boolean',

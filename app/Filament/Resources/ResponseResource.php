@@ -2,44 +2,61 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\ResponseStatus;
 use App\Filament\Resources\ResponseResource\Pages;
-use App\Filament\Resources\ResponseResource\RelationManagers;
+use App\Filament\Resources\ResponseResource\RelationManagers\MessagesRelationManager;
 use App\Models\Response;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Forms\Components\Section;
+use Filament\Tables\Actions\Action;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ResponseResource extends Resource
 {
     protected static ?string $model = Response::class;
+    protected static ?string $modelLabel = 'Отклик продавца';
+    protected static ?string $pluralModelLabel = 'Отклики продавцов';
+    protected static ?string $navigationGroup = 'Заявки и отклики';
+    protected static ?int $navigationSort = 4;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-chat-bubble-left-right';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('seller_id')
-                    ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('request_id')
-                    ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('chat_id')
-                    ->numeric(),
-                Forms\Components\Textarea::make('description')
-                    ->required()
-                    ->columnSpanFull(),
-                Forms\Components\TextInput::make('price')
-                    ->required()
-                    ->numeric()
-                    ->prefix('$'),
-                Forms\Components\TextInput::make('status')
-                    ->maxLength(255),
+                Section::make('Детали отклика')
+                    ->schema([
+                        Forms\Components\Select::make('customer_request_id')
+                            ->label('Заявка покупателя')
+                            ->relationship('customerRequest', 'name')
+                            ->searchable()
+                            ->required(),
+                        Forms\Components\Select::make('seller_id')
+                            ->label('Продавец')
+                            ->relationship('seller', 'name')
+                            ->searchable()
+                            ->required(),
+                    ])->columns(2),
+
+                Section::make('Предложение продавца')
+                    ->schema([
+                        Forms\Components\TextInput::make('price')
+                            ->label('Предложенная цена')
+                            ->numeric()
+                            ->prefix('₽'),
+                        Forms\Components\Select::make('status')
+                            ->label('Статус')
+                            ->options(ResponseStatus::class)
+                            ->required(),
+                        Forms\Components\MarkdownEditor::make('description')
+                            ->label('Комментарий')
+                            ->columnSpanFull(),
+                    ])->columns(2),
             ]);
     }
 
@@ -47,29 +64,23 @@ class ResponseResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('seller_id')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('request_id')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('chat_id')
-                    ->numeric()
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('customerRequest.name')
+                    ->label('Заявка')
+                    ->searchable()
+                    ->wrap(),
+                Tables\Columns\TextColumn::make('seller.name')
+                    ->label('Продавец')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('price')
-                    ->money()
+                    ->label('Цена')
+                    ->money('rub')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
+                    ->label('Статус')
+                    ->badge()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Дата создания')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -79,6 +90,16 @@ class ResponseResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Action::make('markAsCompleted')
+                    ->label('Запрос выполнен')
+                    ->action(function (Response $record) {
+                        $record->status = ResponseStatus::Completed;
+                        $record->save();
+                    })
+                    ->requiresConfirmation()
+                    ->color('success')
+                    ->icon('heroicon-o-check-circle')
+                    ->visible(fn (Response $record) => $record->status !== ResponseStatus::Completed),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -90,7 +111,7 @@ class ResponseResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            MessagesRelationManager::class,
         ];
     }
 
@@ -101,5 +122,16 @@ class ResponseResource extends Resource
             'create' => Pages\CreateResponse::route('/create'),
             'edit' => Pages\EditResponse::route('/{record}/edit'),
         ];
+    }
+    
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        
+        if (auth()->user()->hasRole('seller')) {
+            return $query->where('seller_id', auth()->id());
+        }
+        
+        return $query;
     }
 }

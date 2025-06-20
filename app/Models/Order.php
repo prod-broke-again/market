@@ -6,11 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
-    public int $id;
-    public int $user_id;
-    public float $sum;
-    public string $status;
-
     protected $fillable = [
         'user_id', 'sum', 'status'
     ];

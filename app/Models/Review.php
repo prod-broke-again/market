@@ -6,13 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Review extends Model
 {
-    public int $id;
-    public int $user_id;
-    public int $seller_id;
-    public int $product_id;
-    public int $rating;
-    public string $comment;
-
     protected $fillable = [
         'user_id', 'seller_id', 'product_id', 'rating', 'comment'
     ];

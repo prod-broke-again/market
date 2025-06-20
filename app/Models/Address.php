@@ -6,14 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Address extends Model
 {
-    public int $id;
-    public ?string $address;
-    public ?string $latitude;
-    public ?string $longitude;
-    public ?int $user_id;
-    public ?int $product_id;
-    public ?int $shop_id;
-
     protected $fillable = [
         'address', 'latitude', 'longitude', 'user_id', 'product_id', 'shop_id'
     ];

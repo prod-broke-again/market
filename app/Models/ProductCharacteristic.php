@@ -6,11 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProductCharacteristic extends Model
 {
-    public int $id;
-    public int $product_id;
-    public string $characteristic_name;
-    public string $characteristic_value;
-
     protected $fillable = [
         'product_id', 'characteristic_name', 'characteristic_value'
     ];

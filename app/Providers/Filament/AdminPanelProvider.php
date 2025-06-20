@@ -58,7 +58,7 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
-            ->authGuard('web')
-            ->viteTheme('resources/css/filament/admin/theme.css');
+            ->authGuard('web');
+            // ->viteTheme('resources/css/filament/admin/theme.css');
     }
 }

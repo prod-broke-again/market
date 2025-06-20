@@ -2,23 +2,16 @@
 
 namespace App\Models;
 
+use App\Enums\CustomerRequestStatus;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class CustomerRequest extends Model
 {
-    public int $id;
-    public int $user_id;
-    public string $name;
-    public string $description;
-    public ?array $images;
-    public ?float $min_price;
-    public ?float $max_price;
-    public ?int $category_id;
-    public bool $is_draft;
-    public string $status;
-    public ?int $response_id;
+    use HasFactory;
 
     protected $casts = [
+        'status' => CustomerRequestStatus::class,
         'images' => 'array',
         'min_price' => 'float',
         'max_price' => 'float',

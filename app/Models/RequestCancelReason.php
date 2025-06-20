@@ -6,12 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class RequestCancelReason extends Model
 {
-    public int $id;
-    public string $reason;
-    public int $request_id;
-    public int $seller_id;
-    public int $customer_id;
-
     protected $fillable = [
         'reason', 'request_id', 'seller_id', 'customer_id'
     ];

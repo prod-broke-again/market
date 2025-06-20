@@ -23,9 +23,6 @@ class ShopPolicy
      */
     public function view(User $user, Shop $shop): bool
     {
-        if ($user->hasRole('seller')) {
-            return $user->id === $shop->user_id && $user->can('view_shop');
-        }
         return $user->can('view_shop');
     }
 
@@ -42,9 +39,6 @@ class ShopPolicy
      */
     public function update(User $user, Shop $shop): bool
     {
-        if ($user->hasRole('seller')) {
-            return $user->id === $shop->user_id && $user->can('update_shop');
-        }
         return $user->can('update_shop');
     }
 
@@ -53,9 +47,6 @@ class ShopPolicy
      */
     public function delete(User $user, Shop $shop): bool
     {
-        if ($user->hasRole('seller')) {
-            return $user->id === $shop->user_id && $user->can('delete_shop');
-        }
         return $user->can('delete_shop');
     }
 
@@ -72,9 +63,6 @@ class ShopPolicy
      */
     public function forceDelete(User $user, Shop $shop): bool
     {
-        if ($user->hasRole('seller')) {
-            return $user->id === $shop->user_id && $user->can('force_delete_shop');
-        }
         return $user->can('force_delete_shop');
     }
 
@@ -87,13 +75,10 @@ class ShopPolicy
     }
 
     /**
-     * Determine whether the user can restore the model.
+     * Determine whether the user can restore.
      */
     public function restore(User $user, Shop $shop): bool
     {
-        if ($user->hasRole('seller')) {
-            return $user->id === $shop->user_id && $user->can('restore_shop');
-        }
         return $user->can('restore_shop');
     }
 
@@ -106,7 +91,7 @@ class ShopPolicy
     }
 
     /**
-     * Determine whether the user can replicate the model.
+     * Determine whether the user can replicate.
      */
     public function replicate(User $user, Shop $shop): bool
     {

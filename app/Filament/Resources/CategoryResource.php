@@ -11,30 +11,52 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Str;
+use Filament\Forms\Set;
 
 class CategoryResource extends Resource
 {
     protected static ?string $model = Category::class;
+    protected static ?string $modelLabel = 'Категория';
+    protected static ?string $pluralModelLabel = 'Категории';
+    protected static ?string $navigationGroup = 'Управление контентом';
+    protected static ?int $navigationSort = 1;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-tag';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('parent_id')
-                    ->numeric(),
-                Forms\Components\TextInput::make('name')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('slug')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('level')
-                    ->required()
-                    ->numeric()
-                    ->default(1),
+                Forms\Components\Section::make('Основная информация')
+                    ->schema([
+                        Forms\Components\TextInput::make('name')
+                            ->label('Название категории')
+                            ->required()
+                            ->maxLength(255)
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
+                        Forms\Components\TextInput::make('slug')
+                            ->label('URL (слаг)')
+                            ->required()
+                            ->maxLength(255)
+                            ->unique(Category::class, 'slug', ignoreRecord: true),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Иерархия')
+                    ->schema([
+                        Forms\Components\Select::make('parent_id')
+                            ->label('Родительская категория')
+                            ->relationship('parent', 'name')
+                            ->searchable()
+                            ->placeholder('Выберите родительскую категорию (необязательно)'),
+                        Forms\Components\TextInput::make('level')
+                            ->label('Уровень вложенности')
+                            ->numeric()
+                            ->default(1)
+                            ->minValue(1)
+                            ->maxValue(10),
+                    ])->columns(2),
             ]);
     }
 
@@ -42,21 +64,24 @@ class CategoryResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('parent_id')
-                    ->numeric()
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('name')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('slug')
-                    ->searchable(),
+                    ->label('Название')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('parent.name')
+                    ->label('Родительская категория')
+                    ->searchable()
+                    ->placeholder('—'),
                 Tables\Columns\TextColumn::make('level')
-                    ->numeric()
+                    ->label('Уровень')
+                    ->badge()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('products_count')
+                    ->label('Товаров')
+                    ->counts('products')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Дата создания')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

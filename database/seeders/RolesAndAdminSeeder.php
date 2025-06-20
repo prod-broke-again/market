@@ -24,6 +24,9 @@ class RolesAndAdminSeeder extends Seeder
             'view_shop', 'view_any_shop', 'create_shop', 'update_shop', 'delete_shop',
             'view_product', 'view_any_product', 'create_product', 'update_product', 'delete_product',
             'view_response', 'view_any_response', 'create_response', 'update_response',
+            'view_review', 'view_any_review', // Продавцы могут только просматривать отзывы
+            'view_address', 'view_any_address', 'create_address', 'update_address', 'delete_address',
+            'view_users::info', 'view_any_users::info', 'create_users::info', 'update_users::info', 'delete_users::info',
             'view_any_customer::request', // Продавцы могут видеть все заявки
         ];
         foreach ($sellerPermissions as $permission) {

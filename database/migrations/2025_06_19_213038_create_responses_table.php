@@ -15,12 +15,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('seller_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('request_id')->constrained('customer_requests')->onDelete('cascade');
-            $table->unsignedBigInteger('chat_id')->nullable();
             $table->text('description');
             $table->decimal('price', 10, 2);
             $table->string('status')->nullable();
-            $table->softDeletes();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

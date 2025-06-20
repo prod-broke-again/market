@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\CustomerRequestStatus;
 use App\Filament\Resources\CustomerRequestResource\Pages;
 use App\Filament\Resources\CustomerRequestResource\RelationManagers;
 use App\Models\CustomerRequest;
@@ -16,36 +17,63 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class CustomerRequestResource extends Resource
 {
     protected static ?string $model = CustomerRequest::class;
+    protected static ?string $modelLabel = 'Заявка покупателя';
+    protected static ?string $pluralModelLabel = 'Заявки покупателей';
+    protected static ?string $navigationGroup = 'Заявки и отклики';
+    protected static ?int $navigationSort = 3;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-document-plus';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('user_id')
-                    ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('name')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\Textarea::make('description')
-                    ->required()
-                    ->columnSpanFull(),
-                Forms\Components\TextInput::make('images'),
-                Forms\Components\TextInput::make('min_price')
-                    ->numeric(),
-                Forms\Components\TextInput::make('max_price')
-                    ->numeric(),
-                Forms\Components\TextInput::make('category_id')
-                    ->numeric(),
-                Forms\Components\Toggle::make('is_draft')
-                    ->required(),
-                Forms\Components\TextInput::make('status')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('response_id')
-                    ->numeric(),
+                Forms\Components\Section::make('Детали заявки')
+                    ->schema([
+                        Forms\Components\Select::make('user_id')
+                            ->label('Покупатель')
+                            ->relationship('user', 'name')
+                            ->searchable()
+                            ->required(),
+                        Forms\Components\TextInput::make('name')
+                            ->label('Название/тема заявки')
+                            ->required()
+                            ->maxLength(255),
+                        Forms\Components\Select::make('category')
+                            ->label('Категория')
+                            ->relationship('category', 'name')
+                            ->searchable(),
+                        Forms\Components\Select::make('status')
+                            ->label('Статус')
+                            ->options(CustomerRequestStatus::class)
+                            ->required(),
+                        Forms\Components\MarkdownEditor::make('description')
+                            ->label('Подробное описание')
+                            ->required()
+                            ->columnSpanFull(),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Ценовые ожидания')
+                    ->schema([
+                        Forms\Components\TextInput::make('min_price')
+                            ->label('Минимальная цена')
+                            ->numeric()
+                            ->prefix('₽'),
+                        Forms\Components\TextInput::make('max_price')
+                            ->label('Максимальная цена')
+                            ->numeric()
+                            ->prefix('₽'),
+                    ])->columns(2),
+                
+                Forms\Components\Section::make('Изображения')
+                    ->schema([
+                        Forms\Components\Repeater::make('images')
+                            ->label('Ссылки на изображения')
+                            ->simple(
+                                Forms\Components\TextInput::make('url')->label('URL изображения')
+                            )
+                            ->columnSpanFull(),
+                    ]),
             ]);
     }
 
@@ -53,36 +81,19 @@ class CustomerRequestResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user_id')
-                    ->numeric()
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('name')
+                    ->label('Название заявки')
+                    ->searchable()
+                    ->wrap(),
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('Покупатель')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('min_price')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('max_price')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('category_id')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\IconColumn::make('is_draft')
-                    ->boolean(),
                 Tables\Columns\TextColumn::make('status')
+                    ->label('Статус')
+                    ->badge()
                     ->searchable(),
-                Tables\Columns\TextColumn::make('response_id')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Дата создания')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

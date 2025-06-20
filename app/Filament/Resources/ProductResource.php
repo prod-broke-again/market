@@ -12,53 +12,108 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Str;
+use Filament\Forms\Set;
 
 class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
+    protected static ?string $modelLabel = 'Товар';
+    protected static ?string $pluralModelLabel = 'Товары';
+    protected static ?string $navigationGroup = 'Управление магазином';
+    protected static ?int $navigationSort = 2;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-shopping-bag';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('product_name')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('brand')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('product_images'),
-                Forms\Components\TextInput::make('product_colors'),
-                Forms\Components\TextInput::make('seller_id')
-                    ->numeric(),
-                Forms\Components\Textarea::make('product_description')
-                    ->columnSpanFull(),
-                Forms\Components\TextInput::make('location_id')
-                    ->numeric(),
-                Forms\Components\TextInput::make('category_id')
-                    ->numeric(),
-                Forms\Components\TextInput::make('price')
-                    ->numeric()
-                    ->prefix('$'),
-                Forms\Components\TextInput::make('price_discount')
-                    ->numeric(),
-                Forms\Components\TextInput::make('status_placement')
-                    ->required()
-                    ->numeric()
-                    ->default(1),
-                Forms\Components\TextInput::make('availability')
-                    ->required()
-                    ->numeric()
-                    ->default(1),
-                Forms\Components\TextInput::make('is_draft')
-                    ->required()
-                    ->numeric()
-                    ->default(0),
-                Forms\Components\TextInput::make('articul')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('count')
-                    ->numeric(),
-            ]);
+                Forms\Components\Group::make()
+                    ->schema([
+                        Forms\Components\Section::make('Основная информация')
+                            ->schema([
+                                Forms\Components\TextInput::make('product_name')
+                                    ->label('Название товара')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state))),
+
+                                Forms\Components\TextInput::make('slug')
+                                    ->label('URL (слаг)')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->unique(Product::class, 'slug', ignoreRecord: true),
+
+                                Forms\Components\MarkdownEditor::make('product_description')
+                                    ->label('Описание товара')
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns(2),
+
+                        Forms\Components\Section::make('Изображения и цвета')
+                            ->schema([
+                                Forms\Components\Repeater::make('product_images')
+                                    ->label('Изображения')
+                                    ->simple(
+                                        Forms\Components\TextInput::make('url')->label('URL изображения')
+                                    ),
+                                
+                                Forms\Components\KeyValue::make('product_colors')
+                                     ->label('Цвета')
+                                     ->keyLabel('Название цвета (напр. "красный")')
+                                     ->valueLabel('HEX-код (напр. "#FF0000")'),
+                            ]),
+                    ])
+                    ->columnSpan(['lg' => 2]),
+
+                Forms\Components\Group::make()
+                    ->schema([
+                        Forms\Components\Section::make('Цена и наличие')
+                            ->schema([
+                                Forms\Components\TextInput::make('price')
+                                    ->label('Цена')
+                                    ->numeric()
+                                    ->prefix('₽')
+                                    ->required(),
+                                Forms\Components\TextInput::make('price_discount')
+                                    ->label('Цена со скидкой')
+                                    ->numeric()
+                                    ->prefix('₽'),
+                                Forms\Components\TextInput::make('count')
+                                    ->label('Количество')
+                                    ->numeric(),
+                                Forms\Components\TextInput::make('articul')
+                                    ->label('Артикул'),
+                            ]),
+
+                        Forms\Components\Section::make('Статус')
+                            ->schema([
+                                Forms\Components\Toggle::make('availability')
+                                    ->label('В наличии')
+                                    ->default(true),
+                                Forms\Components\Toggle::make('is_draft')
+                                    ->label('Черновик'),
+                            ]),
+                        
+                        Forms\Components\Section::make('Связи')
+                            ->schema([
+                                Forms\Components\Select::make('seller_id')
+                                    ->label('Продавец')
+                                    ->relationship('seller', 'name')
+                                    ->searchable()
+                                    ->required(),
+                                Forms\Components\Select::make('category_id')
+                                    ->label('Категория')
+                                    ->relationship('category', 'name')
+                                    ->searchable()
+                                    ->required(),
+                            ]),
+                    ])
+                    ->columnSpan(['lg' => 1]),
+            ])
+            ->columns(3);
     }
 
     public static function table(Table $table): Table
@@ -66,53 +121,29 @@ class ProductResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('product_name')
+                    ->label('Название')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('brand')
+                Tables\Columns\TextColumn::make('seller.name')
+                    ->label('Продавец')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('seller_id')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('location_id')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('category_id')
-                    ->numeric()
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('category.name')
+                    ->label('Категория')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('price')
-                    ->money()
+                    ->label('Цена')
+                    ->money('RUB')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('price_discount')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('status_placement')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('availability')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('is_draft')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('articul')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('count')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\IconColumn::make('availability')
+                    ->label('В наличии')
+                    ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Дата создания')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                // ...
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -138,5 +169,16 @@ class ProductResource extends Resource
             'create' => Pages\CreateProduct::route('/create'),
             'edit' => Pages\EditProduct::route('/{record}/edit'),
         ];
+    }
+    
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        
+        if (auth()->user()->hasRole('seller')) {
+            return $query->where('seller_id', auth()->id());
+        }
+        
+        return $query;
     }
 }

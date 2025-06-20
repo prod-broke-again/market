@@ -2,24 +2,18 @@
 
 namespace App\Models;
 
+use App\Enums\ResponseStatus;
 use Illuminate\Database\Eloquent\Model;
 
 class Response extends Model
 {
-    public int $id;
-    public int $seller_id;
-    public int $request_id;
-    public ?int $chat_id;
-    public string $description;
-    public float $price;
-    public ?string $status;
-
     protected $casts = [
         'price' => 'float',
+        'status' => ResponseStatus::class,
     ];
 
     protected $fillable = [
-        'seller_id', 'request_id', 'chat_id', 'description', 'price', 'status'
+        'seller_id', 'request_id', 'description', 'price', 'status'
     ];
 
     public function seller()
@@ -35,5 +29,10 @@ class Response extends Model
     public function chat()
     {
         return $this->hasOne(Chat::class);
+    }
+
+    public function messages()
+    {
+        return $this->hasManyThrough(ChatMessage::class, Chat::class);
     }
 }
