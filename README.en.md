@@ -48,6 +48,10 @@ This project is a platform where buyers can post requests for goods or services,
 3.  **Filament Admin Panel**:
     -   Installed and configured the Filament admin panel.
     -   Created resources for all key models (`User`, `Shop`, `Product`, `Category`, `CustomerRequest`, `Response`).
+    -   **Seller profile page implemented** with avatar upload and display for both user and organization, auto-fill and save using Filament 3 best practices.
+    -   **Custom avatar provider implemented** for correct avatar display everywhere in the panel.
+    -   **All FileUpload bugs fixed** (avatar does not disappear, saves and displays correctly).
+    -   **SubscriptionResource and SliderResource improved**: localization, dropdowns, image preview, grouping, better UX.
 
 4.  **Role-Based Access Control (RBAC)**:
     -   Integrated `spatie/laravel-permission` package for role management.
@@ -102,12 +106,11 @@ This project is a platform where buyers can post requests for goods or services,
 
 ## 🗺️ Roadmap
 
--   [ ] **Frontend Implementation** with Vue.js, Vite, and TailwindCSS.
--   [ ] **API Development** for backend-frontend interaction.
--   [ ] **Real-time Feature Implementation**: chats and notifications.
--   [ ] **Refine Access Policies** for all remaining resources.
--   [ ] **Implement Core Business Logic**: full cycle from request creation to completion.
--   [ ] **Cover Code with Tests** (Unit and Feature).
+-   [ ] Improve CategoryResource, ProductResource, ShopResource, CustomerRequestResource
+-   [ ] Implement API and frontend
+-   [ ] Implement real-time features
+-   [ ] Cover code with tests
+-   [ ] ...
 
 ---
 

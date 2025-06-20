@@ -12,39 +12,86 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 
 class UsersInfoResource extends Resource
 {
     protected static ?string $model = UsersInfo::class;
     protected static ?string $modelLabel = 'Юр. информация';
     protected static ?string $pluralModelLabel = 'Юр. информация';
+    protected static ?string $navigationGroup = 'Пользователи';
+    protected static ?int $navigationSort = 2;
     protected static ?string $navigationIcon = 'heroicon-o-identification';
 
     public static function form(Form $form): Form
     {
+        $user = Auth::user();
+        $isAdmin = $user->hasRole('admin');
+
         return $form
             ->schema([
-                Forms\Components\TextInput::make('user_id')
-                    ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('legal_name')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('legal_address')
-                    ->maxLength(2048),
-                Forms\Components\TextInput::make('inn')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('kpp')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('ogrn')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('phone')
-                    ->tel()
-                    ->maxLength(20),
-                Forms\Components\TextInput::make('email')
-                    ->email()
-                    ->maxLength(2048),
-                Forms\Components\TextInput::make('adress_ur')
-                    ->maxLength(255),
+                Forms\Components\Section::make('Основная информация')
+                    ->schema([
+                        Forms\Components\FileUpload::make('avatar')
+                            ->label('Аватар (логотип)')
+                            ->image()
+                            ->avatar()
+                            ->imageEditor()
+                            ->circleCropper()
+                            ->disk('public')
+                            ->directory('avatars'),
+
+                        Forms\Components\Select::make('user_id')
+                            ->label('Пользователь')
+                            ->relationship('user', 'name')
+                            ->searchable()
+                            ->required()
+                            ->visible(fn () => $isAdmin),
+
+                        Forms\Components\TextInput::make('legal_name')
+                            ->label('Юридическое название')
+                            ->required()
+                            ->maxLength(255),
+
+                        Forms\Components\Select::make('address_id')
+                            ->label('Юридический адрес')
+                            ->relationship(
+                                'address',
+                                'address',
+                                modifyQueryUsing: fn (Builder $query) => $isAdmin ? $query : $query->where('user_id', $user->id)
+                            )
+                            ->searchable()
+                            ->required(),
+                    ])->columns(2),
+
+                Forms\Components\Section::make('Реквизиты')
+                    ->schema([
+                        Forms\Components\TextInput::make('inn')
+                            ->label('ИНН')
+                            ->required()
+                            ->maxLength(12),
+                        Forms\Components\TextInput::make('kpp')
+                            ->label('КПП')
+                            ->maxLength(9),
+                        Forms\Components\TextInput::make('ogrn')
+                            ->label('ОГРН/ОГРНИП')
+                            ->required()
+                            ->maxLength(15),
+                    ])->columns(3),
+
+                Forms\Components\Section::make('Контакты')
+                    ->schema([
+                        Forms\Components\TextInput::make('phone')
+                            ->label('Телефон')
+                            ->tel()
+                            ->required()
+                            ->maxLength(20),
+                        Forms\Components\TextInput::make('email')
+                            ->label('Email')
+                            ->email()
+                            ->required()
+                            ->maxLength(255),
+                    ])->columns(2),
             ]);
     }
 
@@ -52,31 +99,27 @@ class UsersInfoResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user_id')
+                Tables\Columns\TextColumn::make('user.name')
+                    ->label('Пользователь')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('legal_name')
+                    ->label('Юр. название')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('legal_address')
-                    ->searchable(),
+                Tables\Columns\TextColumn::make('address.address')
+                    ->label('Юр. адрес')
+                    ->searchable()
+                    ->wrap(),
                 Tables\Columns\TextColumn::make('inn')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('kpp')
+                    ->label('ИНН')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('ogrn')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('phone')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('email')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('adress_ur')
+                    ->label('ОГРН')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
+                    ->label('Дата создания')
+                    ->dateTime('d.m.Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -85,10 +128,12 @@ class UsersInfoResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => Auth::user()->hasRole('admin')),
                 ]),
             ]);
     }
@@ -97,11 +142,21 @@ class UsersInfoResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        if (auth()->user()->hasRole('seller')) {
-            return $query->where('user_id', auth()->id());
+        if (!Auth::user()->hasRole('admin')) {
+            return $query->where('user_id', Auth::id());
         }
 
         return $query;
+    }
+
+    public static function canCreate(): bool
+    {
+        if (Auth::user()->hasRole('admin')) {
+            return true;
+        }
+
+        // Продавец может создать запись, только если у него ее еще нет
+        return !UsersInfo::where('user_id', Auth::id())->exists();
     }
 
     public static function getRelations(): array
@@ -116,6 +171,7 @@ class UsersInfoResource extends Resource
         return [
             'index' => Pages\ListUsersInfos::route('/'),
             'create' => Pages\CreateUsersInfo::route('/create'),
+            'view' => Pages\ViewUsersInfo::route('/{record}'),
             'edit' => Pages\EditUsersInfo::route('/{record}/edit'),
         ];
     }

@@ -10,45 +10,118 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Forms\Components\Section;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Validation\Rules\Password;
+use Spatie\Permission\Models\Role;
 
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
+    protected static ?string $modelLabel = 'Пользователь';
+    protected static ?string $pluralModelLabel = 'Пользователи';
+    protected static ?string $navigationGroup = 'Пользователи и роли';
+    protected static ?int $navigationSort = 1;
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
 
     public static function form(Form $form): Form
     {
+        $isAdmin = auth()->user()->hasRole('admin');
+        
         return $form
             ->schema([
-                Forms\Components\TextInput::make('name')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('email')
-                    ->email()
-                    ->maxLength(255),
-                Forms\Components\DateTimePicker::make('email_verified_at'),
-                Forms\Components\TextInput::make('password')
-                    ->password()
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('phone')
-                    ->tel()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('avatar')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('balance')
-                    ->numeric(),
-                Forms\Components\FileUpload::make('image')
-                    ->image(),
-                Forms\Components\TextInput::make('group')
-                    ->maxLength(255),
-                Forms\Components\Toggle::make('is_client'),
-                Forms\Components\TextInput::make('verification_code')
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('action')
-                    ->maxLength(255),
+                Section::make('Основная информация')
+                    ->schema([
+                        Forms\Components\TextInput::make('name')
+                            ->label('Имя')
+                            ->required()
+                            ->maxLength(255)
+                            ->rules(['required', 'string', 'max:255']),
+                        
+                        Forms\Components\TextInput::make('email')
+                            ->label('Email')
+                            ->email()
+                            ->required()
+                            ->maxLength(255)
+                            ->unique(ignoreRecord: true)
+                            ->rules(['required', 'email', 'max:255', 'unique:users,email']),
+                        
+                        Forms\Components\TextInput::make('phone')
+                            ->label('Телефон')
+                            ->tel()
+                            ->maxLength(255)
+                            ->rules(['nullable', 'string', 'max:255']),
+                        
+                        Forms\Components\FileUpload::make('avatar')
+                            ->label('Аватар')
+                            ->image()
+                            ->disk('public')
+                            ->directory('avatars')
+                            ->rules(['nullable', 'image', 'max:2048']),
+                    ])->columns(2),
+
+                Section::make('Безопасность')
+                    ->schema([
+                        Forms\Components\TextInput::make('password')
+                            ->label('Пароль')
+                            ->password()
+                            ->required(fn (string $context): bool => $context === 'create')
+                            ->rules([
+                                'required_if:context,create',
+                                Password::defaults(),
+                            ])
+                            ->confirmed(),
+                        
+                        Forms\Components\TextInput::make('password_confirmation')
+                            ->label('Подтверждение пароля')
+                            ->password()
+                            ->required(fn (string $context): bool => $context === 'create')
+                            ->rules(['required_if:context,create']),
+                        
+                        Forms\Components\DateTimePicker::make('email_verified_at')
+                            ->label('Email подтвержден')
+                            ->visible(fn () => $isAdmin),
+                    ])->columns(2),
+
+                Section::make('Дополнительная информация')
+                    ->schema([
+                        Forms\Components\TextInput::make('balance')
+                            ->label('Баланс')
+                            ->numeric()
+                            ->prefix('₽')
+                            ->rules(['nullable', 'numeric', 'min:0'])
+                            ->visible(fn () => $isAdmin),
+                        
+                        Forms\Components\TextInput::make('group')
+                            ->label('Группа')
+                            ->maxLength(255)
+                            ->rules(['nullable', 'string', 'max:255']),
+                        
+                        Forms\Components\Toggle::make('is_client')
+                            ->label('Клиент')
+                            ->default(true),
+                        
+                        Forms\Components\TextInput::make('verification_code')
+                            ->label('Код верификации')
+                            ->maxLength(255)
+                            ->rules(['nullable', 'string', 'max:255'])
+                            ->visible(fn () => $isAdmin),
+                    ])->columns(2),
+
+                // Роли только для админов
+                Section::make('Роли и права')
+                    ->schema([
+                        Forms\Components\Select::make('roles')
+                            ->label('Роли')
+                            ->multiple()
+                            ->relationship('roles', 'name')
+                            ->preload()
+                            ->searchable()
+                            ->visible(fn () => $isAdmin),
+                    ])
+                    ->visible(fn () => $isAdmin),
             ]);
     }
 
@@ -56,59 +129,112 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('avatar')
+                    ->label('Аватар')
+                    ->circular()
+                    ->size(40),
+                
                 Tables\Columns\TextColumn::make('name')
-                    ->searchable(),
+                    ->label('Имя')
+                    ->searchable()
+                    ->sortable(),
+                
                 Tables\Columns\TextColumn::make('email')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('email_verified_at')
-                    ->dateTime()
+                    ->label('Email')
+                    ->searchable()
                     ->sortable(),
+                
                 Tables\Columns\TextColumn::make('phone')
+                    ->label('Телефон')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                
+                Tables\Columns\TextColumn::make('roles.name')
+                    ->label('Роли')
+                    ->badge()
+                    ->color('primary')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('avatar')
-                    ->searchable(),
+                
                 Tables\Columns\TextColumn::make('balance')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\ImageColumn::make('image'),
-                Tables\Columns\TextColumn::make('group')
-                    ->searchable(),
+                    ->label('Баланс')
+                    ->money('rub')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                
                 Tables\Columns\IconColumn::make('is_client')
-                    ->boolean(),
-                Tables\Columns\TextColumn::make('verification_code')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('action')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('deleted_at')
-                    ->dateTime()
+                    ->label('Клиент')
+                    ->boolean()
+                    ->sortable(),
+                
+                Tables\Columns\IconColumn::make('email_verified_at')
+                    ->label('Email подтвержден')
+                    ->boolean()
+                    ->getStateUsing(fn (User $record): bool => !is_null($record->email_verified_at))
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
+                    ->label('Дата регистрации')
+                    ->dateTime('d.m.Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('roles')
+                    ->label('Роли')
+                    ->relationship('roles', 'name')
+                    ->multiple()
+                    ->preload(),
+                
+                Tables\Filters\TernaryFilter::make('is_client')
+                    ->label('Клиент'),
+                
+                Tables\Filters\TernaryFilter::make('email_verified_at')
+                    ->label('Email подтвержден'),
+                
+                Tables\Filters\Filter::make('balance_range')
+                    ->label('Диапазон баланса')
+                    ->form([
+                        Forms\Components\TextInput::make('min_balance')
+                            ->label('Мин. баланс')
+                            ->numeric()
+                            ->prefix('₽'),
+                        Forms\Components\TextInput::make('max_balance')
+                            ->label('Макс. баланс')
+                            ->numeric()
+                            ->prefix('₽'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['min_balance'],
+                                fn (Builder $query, $balance): Builder => $query->where('balance', '>=', $balance),
+                            )
+                            ->when(
+                                $data['max_balance'],
+                                fn (Builder $query, $balance): Builder => $query->where('balance', '<=', $balance),
+                            );
+                    })
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->label('Просмотр'),
+                Tables\Actions\EditAction::make()
+                    ->label('Редактировать'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()->hasRole('admin')),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\RolesRelationManager::class,
         ];
     }
 
@@ -117,7 +243,21 @@ class UserResource extends Resource
         return [
             'index' => Pages\ListUsers::route('/'),
             'create' => Pages\CreateUser::route('/create'),
+            'view' => Pages\ViewUser::route('/{record}'),
             'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        
+        // Админы видят всех пользователей
+        if (auth()->user()->hasRole('admin')) {
+            return $query;
+        }
+        
+        // Остальные видят только себя
+        return $query->where('id', auth()->id());
     }
 }

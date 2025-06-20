@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\ResponseResource\RelationManagers;
+namespace App\Filament\Resources\ChatResource\RelationManagers;
 
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -8,7 +8,6 @@ use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class MessagesRelationManager extends RelationManager
 {
@@ -28,6 +27,14 @@ class MessagesRelationManager extends RelationManager
                     ->maxLength(1000)
                     ->placeholder('Введите текст сообщения...')
                     ->columnSpanFull(),
+                
+                Forms\Components\Toggle::make('is_read')
+                    ->label('Прочитано')
+                    ->default(false),
+                
+                Forms\Components\Toggle::make('is_show')
+                    ->label('Показано')
+                    ->default(true),
             ]);
     }
 
@@ -40,11 +47,23 @@ class MessagesRelationManager extends RelationManager
                     ->label('Автор')
                     ->searchable()
                     ->sortable(),
+                
                 Tables\Columns\TextColumn::make('message')
                     ->label('Сообщение')
                     ->wrap()
                     ->limit(100)
                     ->searchable(),
+                
+                Tables\Columns\IconColumn::make('is_read')
+                    ->label('Прочитано')
+                    ->boolean()
+                    ->sortable(),
+                
+                Tables\Columns\IconColumn::make('is_show')
+                    ->label('Показано')
+                    ->boolean()
+                    ->sortable(),
+                
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Дата отправки')
                     ->dateTime('d.m.Y H:i')
@@ -52,6 +71,10 @@ class MessagesRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: false),
             ])
             ->filters([
+                Tables\Filters\TernaryFilter::make('is_read')
+                    ->label('Прочитано'),
+                Tables\Filters\TernaryFilter::make('is_show')
+                    ->label('Показано'),
                 Tables\Filters\Filter::make('date_range')
                     ->label('Период')
                     ->form([
@@ -85,14 +108,19 @@ class MessagesRelationManager extends RelationManager
                     }),
             ])
             ->actions([
-                // Пока не разрешаем редактирование/удаление сообщений для сохранения истории
-                // Tables\Actions\EditAction::make(),
-                // Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->label('Редактировать'),
+                Tables\Actions\DeleteAction::make()
+                    ->label('Удалить')
+                    ->visible(fn () => auth()->user()->hasRole('admin')),
             ])
             ->bulkActions([
-                // Пока не разрешаем массовые действия
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()->hasRole('admin')),
+                ]),
             ])
             ->defaultSort('created_at', 'desc')
             ->paginated([10, 25, 50, 100]);
     }
-}
+} 

@@ -18,21 +18,35 @@ class SliderResource extends Resource
     protected static ?string $model = Slider::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-photo';
+    protected static ?string $navigationLabel = 'Слайды';
+    protected static ?string $navigationGroup = 'Контент';
+    protected static ?string $modelLabel = 'Слайд';
+    protected static ?string $pluralModelLabel = 'Слайды';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\FileUpload::make('image')
+                    ->label('Изображение')
                     ->image()
+                    ->imagePreviewHeight('150')
                     ->required(),
                 Forms\Components\TextInput::make('url')
+                    ->label('Ссылка')
+                    ->placeholder('https://...')
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('width')
-                    ->numeric(),
+                    ->label('Ширина (px)')
+                    ->numeric()
+                    ->minValue(100)
+                    ->maxValue(2000),
                 Forms\Components\TextInput::make('height')
-                    ->numeric(),
+                    ->label('Высота (px)')
+                    ->numeric()
+                    ->minValue(50)
+                    ->maxValue(1200),
             ]);
     }
 
@@ -40,20 +54,27 @@ class SliderResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('image'),
+                Tables\Columns\ImageColumn::make('image')
+                    ->label('Изображение')
+                    ->height(60),
                 Tables\Columns\TextColumn::make('url')
+                    ->label('Ссылка')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('width')
+                    ->label('Ширина')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('height')
+                    ->label('Высота')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Создано')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Обновлено')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

@@ -13,7 +13,26 @@ class ListChats extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make(),
+            Actions\CreateAction::make()
+                ->label('Создать чат')
+                ->icon('heroicon-o-plus'),
         ];
+    }
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            // Можно добавить виджеты статистики
+        ];
+    }
+
+    protected function getDefaultTableSortColumn(): ?string
+    {
+        return 'created_at';
+    }
+
+    protected function getDefaultTableSortDirection(): ?string
+    {
+        return 'desc';
     }
 }
